@@ -7,8 +7,12 @@ import re
 import shutil
 
 import pytest
-import pytest_html
 from playwright.sync_api import sync_playwright
+
+try:
+    import pytest_html
+except ImportError:
+    pytest_html = None
 
 from config import BASE_URL
 
@@ -54,14 +58,17 @@ def pytest_runtest_makereport(item, call):
             screenshots_dir.mkdir(exist_ok=True)
             file_name = screenshots_dir / f"{item.name}.png"
             page.screenshot(path=str(file_name))
-            extras.append(pytest_html.extras.image(str(file_name)))
+            if pytest_html is not None:
+                extras.append(pytest_html.extras.image(str(file_name)))
             report.extras = extras
 
 
+@pytest.hookimpl(optionalhook=True)
 def pytest_html_results_table_header(cells):
     cells.append("<th>Recording</th>")
 
 
+@pytest.hookimpl(optionalhook=True)
 def pytest_html_results_table_row(report, cells):
     recording_path = recordings_by_test.get(report.nodeid)
     if not recording_path or not recording_path.exists():
